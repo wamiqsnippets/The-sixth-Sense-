@@ -1,8 +1,9 @@
 export interface SensorData {
   soilMoisture: number;
   temperature: number;
-  humidity: number;
   lightIntensity: number;
+  rainLevel: number;
+  waterLevel: number;
   rainStatus: boolean;
   timestamp: string;
 }

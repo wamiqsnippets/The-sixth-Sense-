@@ -1,5 +1,5 @@
 import React from 'react';
-import { Leaf, AlertCircle, CheckCircle2, Info } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Droplets, Flame, Leaf } from 'lucide-react';
 import { motion } from 'motion/react';
 import { SensorData } from '../types';
 
@@ -11,51 +11,48 @@ export const Interpretation: React.FC<InterpretationProps> = ({ data }) => {
   const getInsights = () => {
     const insights = [];
 
-    // Moisture Analysis
     if (data.soilMoisture < 30) {
       insights.push({
-        type: 'warning',
-        text: 'Soil moisture is critically low. Immediate irrigation is recommended to prevent crop wilting.',
-        icon: AlertCircle,
-        color: 'text-amber-600',
-        bg: 'bg-amber-50'
-      });
-    } else if (data.soilMoisture > 80) {
-      insights.push({
-        type: 'warning',
-        text: 'Soil is oversaturated. Reduce irrigation to prevent root rot and nutrient leaching.',
-        icon: AlertCircle,
-        color: 'text-blue-600',
-        bg: 'bg-blue-50'
-      });
-    } else {
-      insights.push({
-        type: 'success',
-        text: 'Soil moisture levels are optimal for plant growth.',
-        icon: CheckCircle2,
-        color: 'text-emerald-600',
-        bg: 'bg-emerald-50'
+        text: 'Irrigation Required: soil moisture is below the safe threshold.',
+        icon: Droplets,
+        color: 'text-amber-700',
+        bg: 'bg-amber-50',
       });
     }
 
-    // Environmental Analysis
     if (data.temperature > 35) {
       insights.push({
-        type: 'info',
-        text: 'High ambient temperature detected. Consider activating misting systems or providing shade.',
-        icon: Info,
-        color: 'text-orange-600',
-        bg: 'bg-orange-50'
+        text: 'Heat Stress: high temperature may slow growth and increase water demand.',
+        icon: Flame,
+        color: 'text-orange-700',
+        bg: 'bg-orange-50',
       });
     }
 
-    if (data.rainStatus) {
+    if (data.rainLevel > 60) {
       insights.push({
-        type: 'info',
-        text: 'Precipitation detected. Automated irrigation scheduled to pause.',
+        text: 'No Irrigation Needed: rainfall is high enough to pause watering.',
         icon: CheckCircle2,
-        color: 'text-blue-600',
-        bg: 'bg-blue-50'
+        color: 'text-blue-700',
+        bg: 'bg-blue-50',
+      });
+    }
+
+    if (data.waterLevel < 25) {
+      insights.push({
+        text: 'Reservoir Low: refill the water tank before the next irrigation cycle.',
+        icon: AlertCircle,
+        color: 'text-rose-700',
+        bg: 'bg-rose-50',
+      });
+    }
+
+    if (insights.length === 0) {
+      insights.push({
+        text: 'Optimal Conditions: inputs are balanced for healthy plant growth.',
+        icon: CheckCircle2,
+        color: 'text-emerald-700',
+        bg: 'bg-emerald-50',
       });
     }
 
@@ -65,7 +62,7 @@ export const Interpretation: React.FC<InterpretationProps> = ({ data }) => {
   const insights = getInsights();
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3 }}
@@ -75,13 +72,18 @@ export const Interpretation: React.FC<InterpretationProps> = ({ data }) => {
         <div className="p-2 bg-emerald-100 rounded-lg">
           <Leaf className="w-5 h-5 text-emerald-600" />
         </div>
-        <h2 className="text-xl font-bold text-emerald-900">Interpretation & Insights</h2>
+        <div>
+          <h2 className="text-xl font-bold text-emerald-900">AI Insights</h2>
+          <p className="text-xs font-bold uppercase tracking-widest text-emerald-700/40">
+            Rule-based prototype analysis
+          </p>
+        </div>
       </div>
 
       <div className="space-y-4">
         {insights.map((insight, idx) => (
-          <div 
-            key={idx} 
+          <div
+            key={idx}
             className={`flex items-start gap-4 p-5 rounded-2xl ${insight.bg} transition-all border border-transparent hover:border-current/10`}
           >
             <insight.icon className={`w-6 h-6 mt-1 flex-shrink-0 ${insight.color}`} />

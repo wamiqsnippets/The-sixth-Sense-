@@ -5,27 +5,175 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Eye, ChevronRight, RefreshCcw } from 'lucide-react';
+import { Activity, ChevronRight, Eye, Leaf, Loader2, RefreshCcw, Wand2 } from 'lucide-react';
 import { SensorForm } from './components/SensorForm';
 import { SensorGrid } from './components/SensorGrid';
 import { Visuals } from './components/Visuals';
 import { Interpretation } from './components/Interpretation';
 import { SensorData } from './types';
 
-export default function App() {
-  const [analysis, setAnalysis] = useState<SensorData | null>(null);
+const initialSensorData: SensorData = {
+  soilMoisture: 45,
+  temperature: 28,
+  lightIntensity: 620,
+  rainLevel: 20,
+  waterLevel: 70,
+  rainStatus: true,
+  timestamp: new Date().toLocaleString(),
+};
 
-  const handleAnalyze = (data: SensorData) => {
-    // Scroll to results after a short delay to feel like "processing"
+const clampHealth = (score: number) => Math.max(0, Math.min(100, Math.round(score)));
+
+const calculateHealthScore = (data: SensorData, simulationAdjustment = 0) => {
+  let score = 78;
+
+  // Good conditions lift the score, while stressors pull it down.
+  if (data.soilMoisture >= 30 && data.soilMoisture <= 75) score += 10;
+  if (data.temperature >= 18 && data.temperature <= 35) score += 8;
+  if (data.lightIntensity >= 250 && data.lightIntensity <= 800) score += 6;
+  if (data.rainLevel <= 60) score += 4;
+  if (data.waterLevel >= 35) score += 6;
+
+  if (data.soilMoisture < 30) score -= 28;
+  if (data.soilMoisture > 85) score -= 12;
+  if (data.temperature > 35) score -= 22;
+  if (data.lightIntensity < 150 || data.lightIntensity > 900) score -= 10;
+  if (data.rainLevel > 75) score -= 8;
+  if (data.waterLevel < 25) score -= 18;
+
+  return clampHealth(score + simulationAdjustment);
+};
+
+const getPlantStatus = (score: number, data: SensorData) => {
+  if (data.soilMoisture < 30 || data.waterLevel < 20) return 'Dry';
+  if (score < 65 || data.temperature > 35) return 'Stressed';
+  return 'Healthy';
+};
+
+const PlantHealthPanel = ({
+  data,
+  simulationAdjustment,
+  isSimulating,
+  onSimulate,
+}: {
+  data: SensorData;
+  simulationAdjustment: number;
+  isSimulating: boolean;
+  onSimulate: () => void;
+}) => {
+  const healthScore = calculateHealthScore(data, simulationAdjustment);
+  const status = getPlantStatus(healthScore, data);
+  const statusStyle = {
+    Healthy: 'text-emerald-700 bg-emerald-50',
+    Dry: 'text-amber-700 bg-amber-50',
+    Stressed: 'text-orange-700 bg-orange-50',
+  }[status];
+
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white rounded-3xl p-8 shadow-sm border border-emerald-100"
+    >
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-emerald-100 rounded-lg">
+            <Leaf className="w-5 h-5 text-emerald-600" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-emerald-900">Plant Health</h2>
+            <p className="text-xs font-bold uppercase tracking-widest text-emerald-700/40">
+              Virtual plant system
+            </p>
+          </div>
+        </div>
+        <span className={`w-fit rounded-full px-4 py-2 text-sm font-black ${statusStyle}`}>
+          Status: {status}
+        </span>
+      </div>
+
+      <div className="mt-8 grid grid-cols-1 lg:grid-cols-[0.8fr_1.2fr] gap-8 items-center">
+        <div className="flex flex-col items-center justify-center rounded-2xl bg-emerald-50/60 p-8 text-center">
+          <Leaf className={`h-20 w-20 ${status === 'Healthy' ? 'text-emerald-500' : 'text-amber-500'}`} />
+          <p className="mt-4 text-sm font-bold uppercase tracking-widest text-emerald-800/50">
+            {status === 'Healthy' ? 'Plant thriving' : status === 'Dry' ? 'Needs water' : 'Under stress'}
+          </p>
+        </div>
+
+        <div className="space-y-5">
+          <div className="flex items-end justify-between">
+            <div>
+              <p className="text-sm font-bold uppercase tracking-widest text-emerald-700/50">Health Score</p>
+              <p className="text-5xl font-black text-emerald-950">{healthScore}</p>
+            </div>
+            <Activity className="w-8 h-8 text-emerald-500" />
+          </div>
+
+          <div className="h-4 overflow-hidden rounded-full bg-emerald-100">
+            <motion.div
+              className="h-full rounded-full bg-emerald-500"
+              initial={{ width: 0 }}
+              animate={{ width: `${healthScore}%` }}
+            />
+          </div>
+
+          {isSimulating && (
+            <p className="flex items-center gap-2 text-sm font-semibold text-emerald-600">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Simulating environmental impact...
+            </p>
+          )}
+
+          <button
+            type="button"
+            onClick={onSimulate}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-950 px-5 py-4 font-bold text-white transition-all hover:bg-emerald-800 active:scale-95 sm:w-auto"
+          >
+            <Wand2 className="h-4 w-4" />
+            Simulate 7 Days
+          </button>
+        </div>
+      </div>
+    </motion.section>
+  );
+};
+
+export default function App() {
+  const [analysis, setAnalysis] = useState<SensorData | null>(initialSensorData);
+  const [simulationAdjustment, setSimulationAdjustment] = useState(0);
+  const [isSimulating, setIsSimulating] = useState(false);
+
+  const handleAnalyze = (data: SensorData, options: { autoScroll?: boolean } = {}) => {
     setAnalysis(data);
-    setTimeout(() => {
-      document.getElementById('results')?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
+    setSimulationAdjustment(0);
+    if (options.autoScroll) {
+      // Scroll to results after a short delay to feel like "processing".
+      setTimeout(() => {
+        document.getElementById('results')?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
   };
 
   const handleReset = () => {
-    setAnalysis(null);
+    setAnalysis({ ...initialSensorData, timestamp: new Date().toLocaleString() });
+    setSimulationAdjustment(0);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleSimulate = () => {
+    if (!analysis) return;
+
+    setIsSimulating(true);
+    window.setTimeout(() => {
+      const dailyImpact =
+        (analysis.soilMoisture >= 30 ? 2 : -5) +
+        (analysis.temperature <= 35 ? 1 : -4) +
+        (analysis.rainLevel > 60 ? 2 : 0) +
+        (analysis.waterLevel >= 35 ? 1 : -3);
+
+      setSimulationAdjustment((current) => Math.max(-45, Math.min(25, current + dailyImpact * 7)));
+      setIsSimulating(false);
+    }, 800);
   };
 
   return (
@@ -89,7 +237,12 @@ export default function App() {
                   <div className="bg-emerald-100 p-2 rounded-xl">
                     <ChevronRight className="w-6 h-6 text-emerald-600" />
                   </div>
-                  <h2 className="text-2xl font-bold text-emerald-900 tracking-tight">Analysis Results</h2>
+                  <div>
+                    <h2 className="text-2xl font-bold text-emerald-900 tracking-tight">Dashboard</h2>
+                    <p className="text-xs font-bold uppercase tracking-widest text-emerald-700/40">
+                      Last Updated: {analysis.timestamp}
+                    </p>
+                  </div>
                 </div>
                 <button 
                   onClick={handleReset}
@@ -101,6 +254,13 @@ export default function App() {
               </div>
 
               <SensorGrid data={analysis} />
+
+              <PlantHealthPanel
+                data={analysis}
+                simulationAdjustment={simulationAdjustment}
+                isSimulating={isSimulating}
+                onSimulate={handleSimulate}
+              />
               
               <Visuals data={analysis} />
 
@@ -125,4 +285,3 @@ export default function App() {
     </div>
   );
 }
-

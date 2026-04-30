@@ -15,8 +15,9 @@ export const Visuals: React.FC<VisualsProps> = ({ data }) => {
   const barData = [
     { name: 'Moisture', value: data.soilMoisture, fill: '#10b981' },
     { name: 'Temp', value: data.temperature, fill: '#f59e0b' },
-    { name: 'Humidity', value: data.humidity, fill: '#3b82f6' },
     { name: 'Light', value: data.lightIntensity / 10, fill: '#facc15' }, // Scaled for visibility
+    { name: 'Rain', value: data.rainLevel, fill: '#6366f1' },
+    { name: 'Water', value: data.waterLevel, fill: '#06b6d4' },
   ];
 
   // Simulated Trends: Current value as center point
